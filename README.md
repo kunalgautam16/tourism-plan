@@ -250,6 +250,3 @@ Clearly distinguish AI-assisted suggestions from the code, testing, design decis
 ## Author
 
 **Kunal Gautam**
-
-- **GitHub:** [Your GitHub profile URL]
-- **Project Repository:** [Your Tourism Explorer repository URL]
