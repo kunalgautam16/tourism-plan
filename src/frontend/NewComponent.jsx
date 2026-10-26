@@ -11,24 +11,7 @@ const CATS = [
   { id: 'park', label: 'Parks', emoji: '🌳', re: /\bparks?\b|garden/ },
   { id: 'historic', label: 'Historic', emoji: '📜', re: /histor|heritage|ruins|archaeolog/ }
 ]
-const AUDIENCES = [
-  { id: 'any', label: 'Anyone', emoji: '🧭', blurb: '', stops: 9, pen: 0 },
-  { id: 'kids', label: 'Kids', emoji: '🧒', blurb: 'Fun, open spaces and short walks.', stops: 4, pen: 1.5,
-    w: { fun: 4, park: 3, fort: 2, viewpoint: 1, museum: 1, monument: 0, temple: 0, other: 1 },
-    why: { fun: 'Made for kids: animals or rides', park: 'Space to run around', fort: 'Room to explore', museum: 'Indoor, good on hot or wet days' } },
-  { id: 'teens', label: 'Friends', emoji: '🎒', blurb: 'Views, photo spots and exploring.', stops: 6, pen: 0.3,
-    w: { fun: 3, viewpoint: 3, fort: 2, park: 2, museum: 1, monument: 1, temple: 1, other: 1 },
-    why: { viewpoint: 'Great for photos', fort: 'Fun to explore', fun: 'Good group activity' } },
-  { id: 'adults', label: 'Adults', emoji: '🧑', blurb: 'History, culture and landmarks.', stops: 8, pen: 0.2,
-    w: { museum: 2, monument: 2, fort: 2, viewpoint: 2, temple: 1, park: 1, fun: 0, other: 1 },
-    why: { museum: 'Rich in history and culture', monument: 'Iconic landmark', fort: 'Historic architecture' } },
-  { id: 'seniors', label: 'Seniors', emoji: '🧓', blurb: 'Relaxed pace, nearby places, step-free first when known.', stops: 3, pen: 2, wheel: true,
-    w: { park: 3, museum: 3, temple: 2, monument: 2, other: 1, viewpoint: 0, fort: 0, fun: 0 },
-    why: { park: 'Gentle walk with places to sit', museum: 'Indoors with seating', temple: 'Peaceful and usually close', monument: 'Easy to see without much walking' } },
-  { id: 'family', label: 'Family', emoji: '👨‍👩‍👧', blurb: 'Something for every age.', stops: 4, pen: 1,
-    w: { fun: 3, park: 3, museum: 2, fort: 2, viewpoint: 1, temple: 1, monument: 1, other: 1 },
-    why: { fun: 'Fun for all ages', park: 'Space for everyone', museum: 'Good indoor option' } }
-]
+
 
 function typeOf(p) {
   const s = `${(p.categories || []).join(' ')} ${p.kind}`.toLowerCase()
@@ -289,11 +272,9 @@ function NewComponent(props) {
   const [day, setDay] = useState(0)
   const [compact, setCompact] = useState(props.suggestedPlace === 'sidebar')
   const rootRef = useRef(null)
-  const [aud, setAud] = useState('any')
-const audObj = AUDIENCES.find(a => a.id === aud)
 
 // kids/family also need zoos and playgrounds, which the "all" query doesn't include
-const apiCat = cat === 'all' && (aud === 'kids' || aud === 'family') ? 'family' : cat
+
   // new query -> reset category/radius
   useEffect(() => {
     setCat(detectCategory(sd?.query))
@@ -341,12 +322,11 @@ const apiCat = cat === 'all' && (aud === 'kids' || aud === 'family') ? 'family' 
   }, [loc?.lat, loc?.lon])
 
   const { places, status } = state
-  const ranked = useMemo(() => rankFor(places, audObj, radius), [places, audObj, radius])
+  const ranked = places
   const plan = useMemo(
-    () => (loc && ranked.length ? buildPlan(ranked, loc, audObj.stops) : null),
-    [ranked, loc, audObj]
+    () => (loc && ranked.length ? buildPlan(ranked, loc, 9) : null),
+    [ranked, loc]
   )
-
   // "from you" only makes sense if the user is actually near the place
   const userNear = sd?.user && loc && hav(sd.user, loc) < 100000
 
@@ -385,14 +365,7 @@ const apiCat = cat === 'all' && (aud === 'kids' || aud === 'family') ? 'family' 
         ))}
       </div>
 
-        <div className="te-chips" aria-label="Who's travelling?">
-  {AUDIENCES.map(a => (
-    <button key={a.id} className={`te-chip ${a.id === aud ? 'on' : ''}`} onClick={() => setAud(a.id)}>
-      <span aria-hidden>{a.emoji}</span> {a.label}
-    </button>
-  ))}
-</div>
-{audObj.blurb && <p className="te-muted">{audObj.blurb}</p>}
+       
       {weather && (
         <div className="te-weather">
           <div className="te-days">
@@ -484,57 +457,101 @@ const apiCat = cat === 'all' && (aud === 'kids' || aud === 'family') ? 'family' 
 
 /* ------------------------------ styles (light + dark, mainline + sidebar) ------------------------------ */
 const css = `
-.te{--bg:#fff;--fg:#1d2433;--mut:#667085;--card:#f5f6fa;--line:#e3e6ee;--acc:#0e7c66;--accfg:#fff;--warn:#b54708;
-  font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--fg);background:var(--bg);
-  max-width:720px;margin:0 auto;padding:14px;box-sizing:border-box}
-@media (prefers-color-scheme:dark){.te{--bg:#14171f;--fg:#e8eaf0;--mut:#9aa3b5;--card:#1d222d;--line:#2c3342;--acc:#3ecfae;--accfg:#06241d;--warn:#f5a65b}}
-.te *{box-sizing:border-box}
-.te h2{margin:0;font-size:18px}.te h3{margin:14px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--acc)}
-.te-muted{color:var(--mut);margin:2px 0;font-size:12.5px}.te-center{text-align:center}
+.te {
+  color-scheme: light;
+  --bg: #fbf8f2;
+  --fg: #1d2433;
+  --mut: #667085;
+  --card: #ffffff;
+  --line: #e8dfd0;
+  --acc: #0e7c66;
+  --accfg: #ffffff;
+  --warn: #b54708;
+  --r: 14px;
+
+  font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.te * {
+  box-sizing: border-box;
+}
+.te h2{margin:0;font-size:20px;line-height:1.2;letter-spacing:-.01em}
+.te h3{margin:16px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--acc)}
 .te button{font:inherit;color:inherit;cursor:pointer}
-.te-chips{display:flex;gap:6px;overflow-x:auto;padding:10px 0 6px;scrollbar-width:none}
-.te-chip{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 10px}
-.te-chip.on{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
-.te-weather{background:var(--card);border-radius:12px;padding:8px 10px;margin:6px 0}
+.te-muted{color:var(--mut);margin:2px 0;font-size:12.5px}
+.te-center{text-align:center}
+
+.te-hero{padding:16px 14px;border-radius:var(--r);margin-bottom:6px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 20%,var(--card)),var(--card));
+  border:1px solid color-mix(in srgb,var(--acc) 25%,var(--line))}
+.te-eyebrow{margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--acc);font-weight:700}
+.te-sub{margin:6px 0 0;color:var(--mut);font-size:12.5px}
+
+.te-label{margin:10px 0 0;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);font-weight:600}
+.te-chips{display:flex;gap:6px;overflow-x:auto;padding:6px 0;scrollbar-width:none}
+.te-chips::-webkit-scrollbar{display:none}
+.te-chip{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px;transition:all .15s}
+.te-chip:hover{border-color:var(--acc)}
+.te-chip.on{background:var(--acc);color:var(--accfg);border-color:var(--acc);font-weight:600}
+.te-chip-aud{background:transparent;border-style:dashed;padding:4px 10px;font-size:13px}
+.te-chip-aud.on{border-style:solid}
+
+.te-weather{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:8px;margin:8px 0}
 .te-days{display:flex;gap:6px}
-.te-day{flex:1;display:flex;flex-direction:column;align-items:center;border:1px solid transparent;background:transparent;border-radius:8px;padding:3px;font-size:12px}
-.te-day.on{border-color:var(--acc)}
-.te-verdict{margin:6px 0 0;font-weight:600}
-.te-tabs{display:flex;gap:4px;margin:8px 0;border-bottom:1px solid var(--line)}
-.te-tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:6px 12px}
-.te-tabs button.on{border-color:var(--acc);color:var(--acc);font-weight:600}
-.te-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.te-card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.te-card-sel{border-color:var(--acc)}
-.te-cardhead{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:10px;text-align:left}
-.te-rank{flex:none;width:24px;height:24px;border-radius:50%;background:var(--acc);color:var(--accfg);display:grid;place-items:center;font-size:12px;font-weight:700}
-.te-cardmain{flex:1;min-width:0;display:flex;flex-direction:column}
+.te-day{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;border:1px solid transparent;background:transparent;border-radius:10px;padding:5px 2px;font-size:12px;transition:all .15s}
+.te-day.on{background:var(--bg);border-color:var(--acc);box-shadow:0 1px 6px rgba(0,0,0,.08)}
+.te-verdict{margin:8px 4px 2px;font-weight:600;font-size:13px}
+
+.te-tabs{display:flex;gap:2px;margin:10px 0;padding:3px;background:var(--card);border:1px solid var(--line);border-radius:999px}
+.te-tabs button{flex:1;background:none;border:0;border-radius:999px;padding:6px 10px;transition:all .15s}
+.te-tabs button.on{background:var(--acc);color:var(--accfg);font-weight:600}
+
+.te-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.te-card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:var(--r);overflow:hidden;transition:transform .15s,box-shadow .15s,border-color .15s}
+.te-card:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.08)}
+.te-card-sel{border-color:var(--acc);border-left-color:var(--acc)}
+.te-cardhead{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:11px 12px;text-align:left}
+.te-rank{flex:none;width:26px;height:26px;border-radius:8px;background:var(--acc);color:var(--accfg);display:grid;place-items:center;font-size:12px;font-weight:700}
+.te-cardmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .te-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.te-meta{color:var(--mut);font-size:12px}
-.te-badge{font-size:10.5px;border:1px solid var(--acc);color:var(--acc);border-radius:6px;padding:0 5px}
+.te-meta{color:var(--mut);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.te-badge{font-size:10.5px;background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc);border-radius:6px;padding:1px 6px;font-weight:600}
 .te[data-compact="true"] .te-badge{display:none}
-.te-chev{color:var(--mut)}
-.te-body{padding:0 12px 12px}
+.te-chev{color:var(--mut);font-size:12px}
+.te-body{padding:0 14px 14px;animation:te-in .2s ease}
+@keyframes te-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .te-desc{display:flex;gap:10px;align-items:flex-start}
-.te-desc img{width:76px;height:76px;object-fit:cover;border-radius:8px;flex:none}
+.te-desc img{width:80px;height:80px;object-fit:cover;border-radius:10px;flex:none}
 .te[data-compact="true"] .te-desc{flex-direction:column}
-.te-desc p,.te-addr{margin:4px 0}
-.te-body a,.te-actions a{color:var(--acc)}
-.te-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
-.te-btn{border:1px solid var(--acc);background:none;color:var(--acc);border-radius:8px;padding:5px 12px}
-.te-empty{text-align:center;padding:24px 8px}
-.te-skel{height:50px;border-radius:12px;background:linear-gradient(90deg,var(--card),var(--line),var(--card));background-size:200% 100%;animation:te-sh 1.2s infinite}
+.te-desc p,.te-addr{margin:5px 0}
+.te-body a{color:var(--acc)}
+.te-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.te-actions a{border:1px solid var(--acc);color:var(--acc);border-radius:999px;padding:4px 12px;text-decoration:none;font-size:13px}
+.te-actions a:first-child{background:var(--acc);color:var(--accfg)}
+.te-btn{border:1px solid var(--acc);background:none;color:var(--acc);border-radius:999px;padding:6px 14px}
+
+.te-empty{text-align:center;padding:28px 10px;background:var(--card);border:1px dashed var(--line);border-radius:var(--r)}
+.te-skel{height:56px;border-radius:var(--r);background:linear-gradient(90deg,var(--card),var(--line),var(--card));background-size:200% 100%;animation:te-sh 1.2s infinite}
 @keyframes te-sh{to{background-position:-200% 0}}
-.te-map{width:100%;max-height:360px;background:var(--card);border-radius:12px;display:block;margin-bottom:8px}
+
+.te-map{width:100%;max-height:360px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);display:block;margin-bottom:10px}
 .te-ring{fill:none;stroke:var(--line);stroke-dasharray:3 4}
 .te-ringlabel{fill:var(--mut);font-size:8px}
 .te-route{fill:none;stroke:var(--acc);stroke-width:1.5;stroke-dasharray:4 3;opacity:.7}
 .te-centre{fill:var(--fg)}
-.te-dot{fill:var(--acc);stroke:var(--bg);stroke-width:1.5}.te-dot-sel{fill:var(--warn)}
+.te-dot{fill:var(--acc);stroke:var(--bg);stroke-width:1.5}
+.te-dot-sel{fill:var(--warn)}
 .te-dotnum{fill:var(--accfg);font-size:9px;font-weight:700;pointer-events:none}
 .te-pin{cursor:pointer;outline:none}
-.te-hop{margin:6px 0 3px 8px;font-size:12px;color:var(--mut)}
-.te-foot{margin-top:14px;font-size:11px;color:var(--mut);text-align:center}
+.te-hop{margin:6px 0 4px 8px;font-size:12px;color:var(--mut)}
+.te-foot{margin-top:16px;font-size:11px;color:var(--mut);text-align:center}
 `
+
 
 export default NewComponent
